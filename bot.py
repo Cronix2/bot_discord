@@ -12,7 +12,7 @@ intents = discord.Intents.all()
 # Utiliser `commands.Bot` uniquement
 client = commands.Bot(command_prefix="/", intents=intents)
 
-load_dotenv(dotenv_path="config")
+load_dotenv(dotenv_path=".env")
 
 
 @client.event
@@ -47,7 +47,7 @@ async def on_message(message):
 
 @client.tree.command(
     name="decrypt_file",
-    description="Déchiffre le dernier fichier ZIP contenant des mots de passe et génère un fichier texte avec les résultats."
+    description="Déchiffre le dernier fichier ZIP et génère un fichier texte avec les résultats."
 )
 async def decrypt_file(interaction: discord.Interaction):
     await interaction.response.defer()  # Indique que la commande est en cours de traitement
