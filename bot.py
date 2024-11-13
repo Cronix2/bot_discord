@@ -6,6 +6,8 @@ import main as decoder
 from keep_alives import keep_alive
 from dotenv import load_dotenv
 from discord.ext import commands
+import pyexcel as p
+import glob
 
 intents = discord.Intents.all()
 
@@ -25,11 +27,33 @@ async def on_message(message):
                 await attachment.save(path_to_decrypt)
                 tableau = decoder.decrypt_passwords(path_to_decrypt)
                 tableau_str = tableau.get_string()
-                output_file = "resultats.txt"
-                with open(output_file, "w") as f:
+                tableau_csv = tableau.get_csv_string()
+                output_file_txt = "resultats.txt"
+                output_file_xlsx = "resultat.xlsx"
+                output_file_csv = "resultats.csv"
+                with open(output_file_csv, "w") as f:
+                    f.write(tableau_csv)
+
+                csv_files = glob.glob(output_file_csv)
+
+                # Lire et associer chaque feuille à un nom
+                sheets = {}
+                for i, csv_file in enumerate(csv_files):
+                    sheet = p.get_sheet(file_name=csv_file, encoding="ISO-8859-1")
+                    sheet_name = f"Sheet_{i + 1}"  # Nom unique pour chaque feuille
+                    sheets[sheet_name] = sheet
+
+                # Créer un livre avec les feuilles nommées
+                book = p.Book(sheets)
+                book.save_as(output_file_xlsx)
+
+                await message.channel.send("Voici le fichier contenant les résultats en format excel :", file=discord.File(output_file_xlsx))
+                with open(output_file_txt, "w") as f:
                     f.write(tableau_str)
-                await message.channel.send("Voici le fichier contenant les résultats :", file=discord.File(output_file))
-                os.remove(output_file)
+                await message.channel.send("Voici le fichier contenant les résultats en format texte :", file=discord.File(output_file_txt))
+                os.remove(output_file_txt)
+                os.remove(output_file_csv)
+                os.remove(output_file_xlsx)
                 try:
                     shutil.rmtree("extracted_files")
                 except PermissionError as e:
@@ -71,6 +95,12 @@ async def decrypt_file(interaction: discord.Interaction):
                         "Voici le fichier contenant les résultats :",
                         file=discord.File(output_file)
                     )
+                    try:
+                        shutil.rmtree("extracted_files")
+                    except PermissionError as e:
+                        print(f"Erreur de permission : {e}")
+                    except Exception as e:
+                        print(f"Erreur inattendue lors de la suppression du dossier : {e}")
                     print("Analyse et nettoyage terminés.")
                 return  # Arrête la recherche après avoir trouvé et traité un fichier ZIP
 

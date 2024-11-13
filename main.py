@@ -112,10 +112,31 @@ def decrypt_passwords(zip_path):
     return final_table
 
 
+# decrypt firefox passwords
+# j'ai 2 fichiers logins.json et key4.db
+# logins.json contient les mots de passe chiffrés
+# key4.db contient la clé de chiffrement
+# pour déchiffrer les mots de passe, j'ai besoin de la clé de chiffrement
+# pour obtenir la clé de chiffrement, j'ai besoin de la clé maître
+'''
+def extract_firefox_key(master_key, key_db_path):
+
+
+def decrypt_firefox_passwords(zip_path):
+
+
+def 
+
+'''
+
+
 def main():
-    zip_path = "chest-PASSWORDS-2024-11-06_03-06.zip"
-    passwords_table = decrypt_passwords(zip_path)
-    print(passwords_table)
+    try:
+        zip_path = "test.zip"
+        passwords_table = decrypt_passwords(zip_path)
+        print(passwords_table)
+    except Exception as e:
+        print(f"Erreur : {e}")
 
 
 if __name__ == "__main__":
