@@ -1,6 +1,6 @@
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/ec559a9f6bfd399b82bb44393651661b08aaf7ba/icons/folder-markdown-open.svg" align="center" width="30%">
+    <img src="https://cdn.discordapp.com/attachments/1001441998227640320/1306556221628747817/image.png?ex=673718cd&is=6735c74d&hm=bb2667adf8992548a6bd1a88976e0ccefaceec0358faeb074f89d256e47fa63d&" align="center" width="30%">
 </p>
 <h1 align="center">BOT_DISCORD</h1>
 <p align="center">
