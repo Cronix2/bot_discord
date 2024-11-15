@@ -9,6 +9,8 @@ from discord.ext import commands
 import pyexcel as p
 import glob
 
+code_version = "1.0.0"
+
 intents = discord.Intents.all()
 
 # Utiliser `commands.Bot` uniquement
@@ -110,7 +112,7 @@ async def decrypt_file(interaction: discord.Interaction):
 
 @client.event
 async def on_ready():
-    print(f'Connecté en tant que {client.user}')
+    print(f'Connecté en tant que {client.user} dans sa version {code_version}')
     try:
         # Synchroniser les commandes avec Discord
         await client.tree.sync()
