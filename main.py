@@ -47,25 +47,36 @@ def find_files(extracted_folder):
     login_data_files = {}
     main_folder = os.path.join(extracted_folder, os.listdir(extracted_folder)[0])
 
+    # Vérifier que main_folder est bien un dossier
+    if not os.path.isdir(main_folder):
+        raise NotADirectoryError(f"{main_folder} n'est pas un répertoire valide.")
+
     for browser_name in os.listdir(main_folder):
+        browser_path = os.path.join(main_folder, browser_name)
+
+        # Vérifier que browser_path est un dossier
+        if not os.path.isdir(browser_path):
+            print(f"Ignoré : {browser_path} n'est pas un répertoire.")
+            continue
+
         if browser_name not in ["google", "edge"]:
             print(f"Le navigateur {browser_name} n'est pas pris en charge.")
             continue
-        browser_folder = os.path.join(main_folder, browser_name)
+
         login_data_files[browser_name] = {
             "login_data_files": [],
             "local_state_file": None,
             "decrypted_key_file": None
         }
 
-        for file in os.listdir(browser_folder):
-            file_path = os.path.join(browser_folder, file)
+        for file in os.listdir(browser_path):
+            file_path = os.path.join(browser_path, file)
 
             if file.startswith("LoginData"):
                 login_data_files[browser_name]["login_data_files"].append(file_path)
             elif file == "LocalState":
                 login_data_files[browser_name]["local_state_file"] = file_path
-            elif file.lower() == "decrypted_key.txt":  # Correction ici
+            elif file.lower() == "decrypted_key.txt":
                 login_data_files[browser_name]["decrypted_key_file"] = file_path
 
         # Vérification des fichiers nécessaires
