@@ -26,6 +26,7 @@ def find_files(extracted_folder):
 
     for browser_name in os.listdir(main_folder):
         if browser_name not in ["google", "edge"]:
+            print(f"Le navigateur {browser_name} n'est pas pris en charge.")
             continue
         browser_folder = os.path.join(main_folder, browser_name)
         login_data_files[browser_name] = {

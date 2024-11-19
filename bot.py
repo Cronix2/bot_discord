@@ -9,7 +9,7 @@ from discord.ext import commands
 import pyexcel as p
 import glob
 
-code_version = "1.0.0"
+code_version = "1.0.1"
 
 intents = discord.Intents.all()
 
