@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://cdn.discordapp.com/attachments/1001441998227640320/1306556221628747817/image.png?ex=673718cd&is=6735c74d&hm=bb2667adf8992548a6bd1a88976e0ccefaceec0358faeb074f89d256e47fa63d&" align="center" width="30%">
+    <img src="https://media.discordapp.net/attachments/1036960627127762944/1306556988418822194/image.png?ex=673d0844&is=673bb6c4&hm=c274bbfaa69e33ebcfdae5d328272be93098f7b7bbbd118796af90381fcb4956&=&format=webp&quality=lossless&width=662&height=662" align="center" width="30%">
 </p>
 <h1 align="center">BOT_DISCORD</h1>
 <p align="center">
