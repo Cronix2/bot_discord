@@ -13,6 +13,29 @@ from prettytable import PrettyTable
 init(autoreset=True)
 
 
+def clean_files():
+    try:
+        shutil.rmtree("extracted_files")
+    except PermissionError as e:
+        print(f"Erreur de permission : {e}")
+    except Exception as e:
+        print(f"Erreur inattendue lors de la suppression du dossier : {e}")
+
+    for file in os.listdir():
+        if file.endswith(".zip") or file.endswith(".db"):
+            try:
+                os.remove(file)
+            except PermissionError as e:
+                print(f"Erreur de permission : {e}")
+    try:
+        os.remove("resultats.txt")
+        os.remove("resultats.csv")
+        os.remove("resultat.xlsx")
+    except FileNotFoundError:
+        pass
+    print("Nettoyage terminés.")
+
+
 def extract_zip(zip_path):
     extracted_folder = "extracted_files"
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:

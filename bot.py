@@ -2,6 +2,8 @@ import discord
 import os
 import shutil
 import tempfile
+
+import main
 import main as decoder
 from keep_alives import keep_alive
 from dotenv import load_dotenv
@@ -9,7 +11,7 @@ from discord.ext import commands
 import pyexcel as p
 import glob
 
-code_version = "1.0.1"
+code_version = "1.0.2"
 
 intents = discord.Intents.all()
 
@@ -17,6 +19,8 @@ intents = discord.Intents.all()
 client = commands.Bot(command_prefix="/", intents=intents)
 
 load_dotenv(dotenv_path=".env")
+
+main.clean_files()
 
 
 @client.event
@@ -103,7 +107,7 @@ async def decrypt_file(interaction: discord.Interaction):
                         print(f"Erreur de permission : {e}")
                     except Exception as e:
                         print(f"Erreur inattendue lors de la suppression du dossier : {e}")
-                    print("Analyse et nettoyage terminés.")
+                    print("Analyse terminé\nNettoyage terminés.")
                 return  # Arrête la recherche après avoir trouvé et traité un fichier ZIP
 
     # Si aucun fichier ZIP n'a été trouvé
